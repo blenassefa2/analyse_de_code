@@ -24,7 +24,6 @@ int handle_ping(int cli){
 		fprintf(stderr, "Unable to read data\n");
 		return 1;
 	}
-	
 	write(cli, buf, size);
 	return 0;
 }
@@ -54,12 +53,9 @@ int handle_client(int cli){
 
 	while(!stop){
 		if (sizeof(cmd) != read(cli, &cmd, sizeof(cmd))){
-			
-			fprintf(stderr, "Unable to read command\n");
+			fprintf(stderr, "Unable to read command");
 			return 1;
 		}
-		
-		// printf("HERE IS CMD %i\n", cmd);
 		switch(cmd){
 		case 0:
 			stop = handle_hello(cli);
@@ -71,7 +67,6 @@ int handle_client(int cli){
 			stop = handle_bye(cli);
 			break;
 		}
-		
 	}
 	return 0;
 }
@@ -80,8 +75,6 @@ int main(int argc, char **argv){
 	int sock, cli;
 	struct sockaddr_in saddr = {0};
 	int one = 1;
-
-	system("date");
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == -1){
@@ -105,7 +98,6 @@ int main(int argc, char **argv){
 	}
 	while(1){
 		cli = accept(sock, NULL, 0);
-
 		if (cli < 0){
 			perror("accept");
 			return 1;

