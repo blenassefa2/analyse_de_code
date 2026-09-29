@@ -1,10 +1,10 @@
 CC=gcc
 CFLAGS= -fstack-protector 
 
-all: exo2
+all: exo1
 
-exo2: exo2.c
+exo1: exo1.c
 	$(CC) -m32 $(CFLAGS) -g  -o $@ $^
 
 clean:
-	rm exo2
+	rm exo1

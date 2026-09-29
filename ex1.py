@@ -91,6 +91,27 @@ def bruteforce_stack(size, i):
     
 def main():
 
+    # username = input("username: ")
+    # print("\nEnter custom payload as hexadecimal:")
+
+    # value = input("> ").strip()
+
+    # try:
+
+    #     raw_payload = unhexlify(value)
+
+    # except ValueError:
+
+    #     print("Invalid hexadecimal payload.")
+
+    #     return
+
+    # print(f"\nCustom payload loaded ({len(raw_payload)} bytes).")
+
+    # print("payload:", hexlify(raw_payload).decode())
+
+    # print(oracle(username=username, data=raw_payload))
+    # return
     print("=== Initial setup ===")
 
     print("1. Run stack leak")
