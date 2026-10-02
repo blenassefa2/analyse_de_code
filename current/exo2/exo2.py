@@ -4,6 +4,25 @@ from binascii import hexlify, unhexlify
 from struct import pack, unpack
 
 
+# CTF Target: Run shellcode in the stack
+# My solution:
+# Step 0: Use the previous bruteforce attack and write function to get binary base and  libc base
+# Step 1: now instead of system address we  look for the mprotect function
+# Step 2: build a payload such that
+#       2.1) the new target function is mprotect changing the executability of the stack where username is stored at
+#       2.2) after executing mprotect the next function to executie should be the username address where my shellcode is at
+# that's it we are done
+
+
+# next steps:
+# now in this python code we already do big part of step 0 but the target function is system
+# So I need to update the menu to be able to change the target function libc offset 
+# Then add more steps in the menue that says build custom payload and it could have options like
+#   add mprotect payload
+#   add shellcode executable to the payload
+#   stop with fake address
+
+
 #Overflow the stack with some data,
 #return True if the data is correct
 #	- right stack cookie
@@ -126,6 +145,7 @@ libc_write = 0x001139b0
 
 #adelf -s /lib32/libc.so.6 | grep ' system@@'
 libc_system = 0x0004f8e0
+
 
 # objdump -R ./exo2 | grep write
 exo2_write = 0x00003fc4
