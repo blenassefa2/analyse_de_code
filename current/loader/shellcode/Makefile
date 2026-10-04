@@ -10,7 +10,7 @@ SOURCE=shell.S
 	$(OBJCOPY) -j .text -O binary $< $@
 
 shell.o: $(SOURCE)
-	$(AS) $(CFLAGS) -o $@ $^
+	$(AS) $(CFLAGS) -m32 -o $@ $^
 
 clean:
 	-rm shell.o shell.bin

